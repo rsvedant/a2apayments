@@ -2,7 +2,7 @@ import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
-import { query } from "./_generated/server";
+import { query, internalQuery } from "./_generated/server";
 import { betterAuth } from "better-auth";
 import { v } from "convex/values";
 import { passkey } from "better-auth/plugins/passkey"
@@ -145,6 +145,26 @@ export const getCurrentUser = query({
 	args: {},
 	returns: v.any(),
 	handler: async function (ctx) {
-		return authComponent.getAuthUser(ctx);
+		try {
+			return await authComponent.getAuthUser(ctx);
+		} catch (error) {
+			// If unauthenticated, return null instead of throwing
+			return null;
+		}
+	},
+});
+
+/**
+ * Internal query to get current user (for use in actions)
+ */
+export const getCurrentUserInternal = internalQuery({
+	args: {},
+	returns: v.any(),
+	handler: async function (ctx) {
+		try {
+			return await authComponent.getAuthUser(ctx);
+		} catch (error) {
+			return null;
+		}
 	},
 });

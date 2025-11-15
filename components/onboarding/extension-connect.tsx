@@ -119,6 +119,9 @@ export function ExtensionConnect({ onComplete, onBack }: ExtensionConnectProps) 
         <Button variant='outline' onClick={onBack}>
           Back
         </Button>
+        <Button variant='ghost' onClick={onComplete}>
+          Skip & Complete
+        </Button>
       </div>
     </div>
   )
