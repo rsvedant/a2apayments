@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as agentmailSync from "../agentmailSync.js";
 import type * as auth from "../auth.js";
 import type * as callProcessing from "../callProcessing.js";
 import type * as calls from "../calls.js";
@@ -37,6 +38,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  agentmailSync: typeof agentmailSync;
   auth: typeof auth;
   callProcessing: typeof callProcessing;
   calls: typeof calls;

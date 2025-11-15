@@ -34,7 +34,7 @@ export const processCallTranscription = internalAction({
 				throw new Error("Call has no transcription");
 			}
 
-		// Get user settings for context and Agentmail config
+		// Get user settings for context
 		const settings = await ctx.runQuery(internal.userSettings.getInternal, { userId: args.userId });
 		
 		// Check if HubSpot is configured (via environment variable)
@@ -47,8 +47,15 @@ export const processCallTranscription = internalAction({
 			console.log("[HubSpot] API key found, sync enabled");
 		}
 		
-		// Check if Agentmail is configured (per-user settings)
-		const agentmailEnabled = !!(settings?.agentmailApiKey && settings.agentmailEnabled);
+		// Check if Agentmail is configured (via environment variable)
+		const agentmailApiKey = process.env.AGENTMAIL_API_KEY;
+		const agentmailEnabled = !!agentmailApiKey;
+		
+		if (!agentmailApiKey) {
+			console.warn("[Agentmail] AGENTMAIL_API_KEY environment variable not set. Email sending will be disabled.");
+		} else {
+			console.log("[Agentmail] API key found, email sending enabled");
+		}
 
 			// Extract semantic entities using LLM (always runs, regardless of HubSpot config)
 			const extracted = await ctx.runAction(internal.semanticExtraction.extractSemanticEntities, {
@@ -158,11 +165,83 @@ export const processCallTranscription = internalAction({
 				console.error("Failed to create meeting:", error);
 				// Continue even if meeting creation fails
 			}
-			} else {
-				console.log("HubSpot not configured. Skipping HubSpot sync, but extraction results are available.");
-			}
+		} else {
+			console.log("HubSpot not configured. Skipping HubSpot sync, but extraction results are available.");
+		}
 
-			// Mark call as processed and update summary/topics (always do this)
+		// Send Agentmail follow-up emails if enabled
+		if (agentmailEnabled) {
+			console.log("[Agentmail] Sending follow-up emails...");
+			
+			try {
+				// Extract PRIMARY CLIENT contact (not internal sales reps)
+				// Filter out contacts from our own company domain
+				const clientContacts = extracted.contacts?.filter((contact: any) => {
+					// Exclude if email contains common sales domains
+					const email = contact.email?.toLowerCase() || '';
+					const excludeDomains = ['agentsale.com', 'mysalescompany.com', 'yourdomain.com'];
+					return !excludeDomains.some(domain => email.includes(domain));
+				}) || [];
+				
+				const primaryContact = clientContacts.length > 0 
+					? clientContacts[0] 
+					: null;
+
+				if (primaryContact && primaryContact.email) {
+					// Prepare action items from tickets
+					const actionItems = extracted.tickets.map((t: any) => t.subject);
+
+					// Prepare deal info
+					const dealInfo = extracted.deals.length > 0
+						? extracted.deals.map((d: any) => `${d.dealname}${d.amount ? ` - $${d.amount}` : ''}`).join(', ')
+						: undefined;
+
+					// Send follow-up email
+					const followUpResult = await ctx.runAction(internal.agentmailSync.sendCallFollowUpEmail, {
+						recipientEmail: primaryContact.email,
+						recipientName: primaryContact.firstname || primaryContact.lastname 
+							? `${primaryContact.firstname || ''} ${primaryContact.lastname || ''}`.trim()
+							: undefined,
+						callSummary: extracted.note.body,
+						actionItems: actionItems.length > 0 ? actionItems : undefined,
+						dealInfo,
+					});
+
+					if (followUpResult.success) {
+						console.log(`[Agentmail] Follow-up email sent to ${primaryContact.email}`);
+						emailsSent++;
+					}
+
+					// If deals were created, send deal notification emails
+					if (extracted.deals.length > 0) {
+						for (const deal of extracted.deals) {
+							const dealEmailResult = await ctx.runAction(internal.agentmailSync.sendDealNotificationEmail, {
+								recipientEmail: primaryContact.email,
+								recipientName: primaryContact.firstname || primaryContact.lastname 
+									? `${primaryContact.firstname || ''} ${primaryContact.lastname || ''}`.trim()
+									: undefined,
+								dealName: deal.dealname,
+								dealAmount: deal.amount,
+								nextSteps: `Deal Stage: ${deal.dealstage || 'New'}`,
+							});
+							
+							if (dealEmailResult.success) {
+								emailsSent++;
+							}
+						}
+					}
+				} else {
+					console.warn("[Agentmail] No primary contact email found. Skipping email send.");
+				}
+			} catch (error: any) {
+				console.error("[Agentmail] Error sending emails:", error);
+				// Continue processing even if email fails
+			}
+		} else {
+			console.log("[Agentmail] Not configured. Skipping email sending.");
+		}
+
+		// Mark call as processed and update summary/topics (always do this)
 			await ctx.runMutation(internal.calls.markAsProcessed, {
 				callId: args.callId,
 				summary: extracted.note.body, // Use note body as summary

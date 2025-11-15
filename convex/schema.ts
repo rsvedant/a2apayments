@@ -9,11 +9,6 @@ export default defineSchema({
 		salesScript: v.optional(v.string()),
 		companyDocs: v.optional(v.string()),
 		mossIndexName: v.optional(v.string()),
-		// Agentmail integration (optional per-user)
-		agentmailApiKey: v.optional(v.string()),
-		agentmailEnabled: v.optional(v.boolean()),
-		agentmailInboxId: v.optional(v.string()),
-		agentmailInboxEmail: v.optional(v.string()),
 	}).index("by_userId", ["userId"]),
 
 	// Call recordings and transcriptions
