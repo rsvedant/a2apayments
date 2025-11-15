@@ -20,6 +20,47 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Environment Variables
+
+### Required Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+#### Convex Configuration
+- `NEXT_PUBLIC_CONVEX_URL` - Your Convex deployment URL
+- `SITE_URL` - Your site URL (e.g., `http://localhost:3000` for development)
+- `BETTER_AUTH_SECRET` - Secret key for Better Auth encryption (generate with `openssl rand -base64 32`)
+
+#### GitHub OAuth (for GitHub sign-in)
+- `GITHUB_CLIENT_ID` - GitHub OAuth App Client ID
+- `GITHUB_CLIENT_SECRET` - GitHub OAuth App Client Secret
+
+### Setting Convex Environment Variables
+
+Set Convex-specific environment variables using the Convex CLI:
+
+```bash
+npx convex env set SITE_URL http://localhost:3000
+npx convex env set GITHUB_CLIENT_ID your_client_id_here
+npx convex env set GITHUB_CLIENT_SECRET your_client_secret_here
+```
+
+## GitHub OAuth Setup
+
+To enable GitHub sign-in, you need to create a GitHub OAuth App:
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click "New OAuth App"
+3. Fill in the application details:
+   - **Application name**: Your app name (e.g., "AgentSale")
+   - **Homepage URL**: Your app URL (e.g., `http://localhost:3000` for dev)
+   - **Authorization callback URL**: 
+     - Development: `http://localhost:3000/api/auth/callback/github`
+     - Production: `https://yourdomain.com/api/auth/callback/github`
+4. Click "Register application"
+5. Copy the **Client ID** and generate a **Client Secret**
+6. Add these values to your `.env.local` file and Convex environment variables (see above)
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
