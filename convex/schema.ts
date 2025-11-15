@@ -16,55 +16,20 @@ export default defineSchema({
 	// Call recordings and transcriptions
 	calls: defineTable({
 		userId: v.string(),
-		title: v.string(),
+		title: v.optional(v.string()),
 		companyName: v.optional(v.string()),
 		aiSuggestionCount: v.optional(v.number()),
-		transcription: v.optional(v.string()),
-		participants: v.optional(v.string()), // JSON string of participant objects
+		transcription: v.string(),
+		participants: v.string(), // JSON string of participant objects
 		duration: v.optional(v.number()), // Duration in seconds
 		recordingUrl: v.optional(v.string()),
-		processingStatus: v.union(
-			v.literal("pending"),
-			v.literal("processing"),
-			v.literal("completed"),
-			v.literal("failed")
-		),
-		callOutcome: v.optional(
-			v.union(v.literal("converted"), v.literal("lost"), v.literal("follow-up"))
-		),
 		talkRatio: v.optional(v.number()), // 0-1 representing user talk percentage
-		keyMoments: v.optional(v.string()), // JSON string of key moment objects
 		topics: v.optional(v.string()), // JSON string of topics array
-		//dealLikelihood: v.optional(v.number()), // 0-100 score
 		summary: v.optional(v.string()),
+		processed: v.boolean(), // Has this call been processed?
 	})
 		.index("by_userId", ["userId"])
-		.index("by_userId_and_status", ["userId", "processingStatus"]),
-
-	// Extracted actionables (tasks, follow-ups, deals)
-	actionables: defineTable({
-		userId: v.string(),
-		callId: v.id("calls"),
-		type: v.union(v.literal("task"), v.literal("follow_up"), v.literal("deal")),
-		title: v.string(),
-		description: v.optional(v.string()),
-		priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
-		dueDate: v.optional(v.number()), // Timestamp
-		status: v.union(
-			v.literal("pending"),
-			v.literal("in_progress"),
-			v.literal("completed"),
-			v.literal("cancelled")
-		),
-
-		crmSynced: v.boolean(),
-		crmEntityId: v.optional(v.string()), // HubSpot entity ID
-		crmEntityType: v.optional(v.string()), // "task", "deal", "engagement"
-	})
-		.index("by_userId", ["userId"])
-		.index("by_callId", ["callId"])
-		.index("by_userId_and_status", ["userId", "status"]),
-		//.index("by_userId_and_crmSynced", ["userId", "crmSynced"]),
+		.index("by_userId_and_processed", ["userId", "processed"])
 
 	// CRM sync status tracking
 	// crmSyncStatus: defineTable({

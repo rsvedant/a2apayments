@@ -8,17 +8,14 @@
  * @module
  */
 
-import type * as actionables from "../actionables.js";
-import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
-import type * as callInsights from "../callInsights.js";
 import type * as callProcessing from "../callProcessing.js";
 import type * as calls from "../calls.js";
 import type * as contactSync from "../contactSync.js";
-import type * as crmSync from "../crmSync.js";
-import type * as crmSyncQueries from "../crmSyncQueries.js";
 import type * as cron from "../cron.js";
 import type * as http from "../http.js";
+import type * as hubspotSync from "../hubspotSync.js";
+import type * as semanticExtraction from "../semanticExtraction.js";
 import type * as userSettings from "../userSettings.js";
 import type * as validators from "../validators.js";
 
@@ -37,17 +34,14 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  actionables: typeof actionables;
-  admin: typeof admin;
   auth: typeof auth;
-  callInsights: typeof callInsights;
   callProcessing: typeof callProcessing;
   calls: typeof calls;
   contactSync: typeof contactSync;
-  crmSync: typeof crmSync;
-  crmSyncQueries: typeof crmSyncQueries;
   cron: typeof cron;
   http: typeof http;
+  hubspotSync: typeof hubspotSync;
+  semanticExtraction: typeof semanticExtraction;
   userSettings: typeof userSettings;
   validators: typeof validators;
 }>;

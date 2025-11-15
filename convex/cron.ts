@@ -10,28 +10,16 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 /**
- * Retry failed CRM syncs every 5 minutes
+ * Process unprocessed call transcriptions every minute
  *
- * This job processes failed HubSpot sync operations and retries them
- * with exponential backoff (5min → 15min → 45min)
+ * This job finds calls with processed=false and transcriptions,
+ * processes them using LLM to extract semantic meaning,
+ * and creates appropriate HubSpot entities (tickets, deals, notes, meetings)
  */
 crons.interval(
-	"retry-failed-syncs",
-	{ minutes: 5 },
-	internal.crmSync.processFailedSyncsInternal
-);
-
-/**
- * Process pending call transcriptions every minute
- *
- * This job finds calls with pending status and transcriptions,
- * processes them using LLM to extract actionables and insights,
- * and syncs them to HubSpot CRM
- */
-crons.interval(
-	"process-pending-calls",
+	"process-unprocessed-calls",
 	{ minutes: 1 },
-	internal.callProcessing.processPendingCallsInternal
+	internal.callProcessing.processUnprocessedCallsInternal
 );
 
 export default crons;
