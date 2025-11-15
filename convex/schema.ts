@@ -26,6 +26,9 @@ export default defineSchema({
 			v.literal("completed"),
 			v.literal("failed")
 		),
+		processingError: v.optional(v.string()), // Error message if processing failed
+		processingAttempts: v.optional(v.number()), // Number of processing attempts
+		lastProcessingAttempt: v.optional(v.number()), // Timestamp of last processing attempt
 		metadata: v.optional(v.string()), // JSON string for extensible metadata
 	})
 		.index("by_userId", ["userId"])

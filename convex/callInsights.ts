@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { authComponent } from "./auth";
 import { callInsightsValidator } from "./validators";
 
@@ -285,5 +285,51 @@ export const getStats = query({
 			avgDealLikelihood,
 			avgTalkRatio,
 		};
+	},
+});
+
+/**
+ * Internal mutation to create or update call insights (for use in actions)
+ */
+export const createInternal = internalMutation({
+	args: callInsightsValidator,
+	handler: async (ctx, args) => {
+		// Check if insights already exist for this call
+		const existing = await ctx.db
+			.query("callInsights")
+			.withIndex("by_callId", (q) => q.eq("callId", args.callId))
+			.first();
+
+		if (existing) {
+			// Update existing insights
+			await ctx.db.patch(existing._id, {
+				sentiment: args.sentiment,
+				talkRatio: args.talkRatio,
+				keyMoments: args.keyMoments, // JSON string
+				topics: args.topics, // JSON string
+				dealLikelihood: args.dealLikelihood,
+				summary: args.summary,
+			});
+			return existing._id;
+		} else {
+			// Get call to determine userId
+			const call = await ctx.db.get(args.callId);
+			if (!call) {
+				throw new Error("Call not found");
+			}
+
+			// Create new insights
+			const insightsId = await ctx.db.insert("callInsights", {
+				userId: call.userId,
+				callId: args.callId,
+				sentiment: args.sentiment,
+				talkRatio: args.talkRatio,
+				keyMoments: args.keyMoments, // JSON string
+				topics: args.topics, // JSON string
+				dealLikelihood: args.dealLikelihood,
+				summary: args.summary,
+			});
+			return insightsId;
+		}
 	},
 });

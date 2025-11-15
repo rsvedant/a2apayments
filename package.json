@@ -6,7 +6,10 @@
     "dev": "concurrently 'next dev' 'convex dev'",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:crm": "tsx scripts/test-crm-sync.ts",
+    "test:processing": "tsx scripts/test-call-processing.ts",
+    "populate:data": "tsx scripts/populate-test-data.ts"
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.9.6",
@@ -30,6 +33,7 @@
     "lucide-react": "^0.552.0",
     "next": "16.0.1",
     "next-themes": "^0.4.6",
+    "openai": "^4.20.0",
     "react": "19.2.0",
     "react-day-picker": "^9.11.1",
     "react-dom": "19.2.0",
@@ -45,6 +49,7 @@
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4.1.16",
     "eslint": "^9",
-    "eslint-config-next": "16.0.1"
+    "eslint-config-next": "16.0.1",
+    "tsx": "^4.19.2"
   }
 }

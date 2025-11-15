@@ -9,9 +9,11 @@
  */
 
 import type * as actionables from "../actionables.js";
+import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as callInsights from "../callInsights.js";
 import type * as calls from "../calls.js";
+import type * as contactSync from "../contactSync.js";
 import type * as crmSync from "../crmSync.js";
 import type * as crmSyncQueries from "../crmSyncQueries.js";
 import type * as cron from "../cron.js";
@@ -35,9 +37,11 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   actionables: typeof actionables;
+  admin: typeof admin;
   auth: typeof auth;
   callInsights: typeof callInsights;
   calls: typeof calls;
+  contactSync: typeof contactSync;
   crmSync: typeof crmSync;
   crmSyncQueries: typeof crmSyncQueries;
   cron: typeof cron;

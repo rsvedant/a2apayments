@@ -21,4 +21,17 @@ crons.interval(
 	internal.crmSync.processFailedSyncsInternal
 );
 
+/**
+ * Process pending call transcriptions every minute
+ *
+ * This job finds calls with pending status and transcriptions,
+ * processes them using LLM to extract actionables and insights,
+ * and syncs them to HubSpot CRM
+ */
+crons.interval(
+	"process-pending-calls",
+	{ minutes: 1 },
+	internal.callProcessing.processPendingCallsInternal
+);
+
 export default crons;

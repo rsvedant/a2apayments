@@ -391,3 +391,54 @@ export const markSyncedInternal = internalMutation({
 		return args.actionableId;
 	},
 });
+
+/**
+ * Internal mutation to create an actionable (for use in actions)
+ */
+export const createInternal = internalMutation({
+	args: {
+		userId: v.string(),
+		callId: v.id("calls"),
+		type: v.union(v.literal("task"), v.literal("follow_up"), v.literal("deal")),
+		title: v.string(),
+		description: v.optional(v.string()),
+		priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+		dueDate: v.optional(v.number()),
+		status: v.union(
+			v.literal("pending"),
+			v.literal("in_progress"),
+			v.literal("completed"),
+			v.literal("cancelled")
+		),
+	},
+	handler: async (ctx, args) => {
+		const actionableId = await ctx.db.insert("actionables", {
+			userId: args.userId,
+			callId: args.callId,
+			type: args.type,
+			title: args.title,
+			description: args.description,
+			priority: args.priority,
+			dueDate: args.dueDate,
+			status: args.status,
+			crmSynced: false,
+		});
+
+		return actionableId;
+	},
+});
+
+/**
+ * Internal query to get actionables by call ID (for use in actions)
+ */
+export const getByCallIdInternal = internalQuery({
+	args: { callId: v.id("calls") },
+	handler: async (ctx, args) => {
+		const actionables = await ctx.db
+			.query("actionables")
+			.withIndex("by_callId", (q) => q.eq("callId", args.callId))
+			.collect();
+
+		return actionables;
+	},
+});

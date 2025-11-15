@@ -14,6 +14,7 @@ export const syncCallToHubSpot = internalAction({
 	args: {
 		callId: v.id("calls"),
 		userId: v.string(),
+		contactIds: v.optional(v.array(v.string())),
 	},
 	handler: async (ctx, args): Promise<{ success: boolean; crmEntityId: string }> => {
 		const userId = args.userId;
@@ -43,13 +44,30 @@ export const syncCallToHubSpot = internalAction({
 			// Initialize HubSpot client
 			const hubspotClient: Client = new Client({ accessToken: settings.hubspotApiKey });
 
+			// Build associations array
+			const associations: Array<{
+				to: { id: string };
+				types: Array<{ associationCategory: "HUBSPOT_DEFINED"; associationTypeId: number }>;
+			}> = [];
+
+			if (args.contactIds && args.contactIds.length > 0) {
+				// Associate note with contacts
+				// Note-to-Contact association type ID is 202
+				for (const contactId of args.contactIds) {
+					associations.push({
+						to: { id: contactId },
+						types: [{ associationCategory: "HUBSPOT_DEFINED" as const, associationTypeId: 202 }],
+					});
+				}
+			}
+
 			// Create engagement in HubSpot
-			const engagementData = {
+			const engagementData: any = {
 				properties: {
 					hs_timestamp: new Date(call._creationTime).toISOString(),
 					hs_note_body: `${call.title}\n\n${call.transcription || ""}`,
 				},
-				associations: [],
+				associations: associations.length > 0 ? associations : [],
 			};
 
 			// Create the note engagement
@@ -89,12 +107,31 @@ export const syncCallToHubSpot = internalAction({
 });
 
 /**
+ * Sync a call to HubSpot with contact associations (wrapper)
+ */
+export const syncCallToHubSpotWithContacts = internalAction({
+	args: {
+		callId: v.id("calls"),
+		userId: v.string(),
+		contactIds: v.array(v.string()),
+	},
+	handler: async (ctx, args): Promise<{ success: boolean; crmEntityId: string }> => {
+		return await ctx.runAction(internal.crmSync.syncCallToHubSpot, {
+			callId: args.callId,
+			userId: args.userId,
+			contactIds: args.contactIds,
+		});
+	},
+});
+
+/**
  * Sync an actionable to HubSpot (as task or deal)
  */
 export const syncActionableToHubSpot = internalAction({
 	args: {
 		actionableId: v.id("actionables"),
 		userId: v.string(),
+		contactIds: v.optional(v.array(v.string())),
 	},
 	handler: async (ctx, args): Promise<{ success: boolean; crmEntityId: string; crmEntityType: string }> => {
 		const userId = args.userId;
@@ -129,6 +166,32 @@ export const syncActionableToHubSpot = internalAction({
 			// Initialize HubSpot client
 			const hubspotClient: Client = new Client({ accessToken: settings.hubspotApiKey });
 
+			// Build associations array
+			const associations: Array<{
+				to: { id: string };
+				types: Array<{ associationCategory: "HUBSPOT_DEFINED"; associationTypeId: number }>;
+			}> = [];
+
+			if (args.contactIds && args.contactIds.length > 0) {
+				if (actionable.type === "deal") {
+					// Deal-to-Contact association type ID is 3
+					for (const contactId of args.contactIds) {
+						associations.push({
+							to: { id: contactId },
+							types: [{ associationCategory: "HUBSPOT_DEFINED" as const, associationTypeId: 3 }],
+						});
+					}
+				} else {
+					// Task-to-Contact association type ID is 203
+					for (const contactId of args.contactIds) {
+						associations.push({
+							to: { id: contactId },
+							types: [{ associationCategory: "HUBSPOT_DEFINED" as const, associationTypeId: 203 }],
+						});
+					}
+				}
+			}
+
 			let crmEntityId: string;
 			let crmEntityType: string;
 
@@ -145,9 +208,9 @@ export const syncActionableToHubSpot = internalAction({
 					properties.closedate = new Date(actionable.dueDate).toISOString().split("T")[0];
 				}
 
-				const dealData = {
+				const dealData: any = {
 					properties,
-					associations: [],
+					associations: associations.length > 0 ? associations : [],
 				};
 
 				const response: { id: string } = await hubspotClient.crm.deals.basicApi.create(dealData);
@@ -155,7 +218,7 @@ export const syncActionableToHubSpot = internalAction({
 				crmEntityType = "deal";
 			} else {
 				// Create as a task
-				const taskData = {
+				const taskData: any = {
 					properties: {
 						hs_task_subject: actionable.title,
 						hs_task_body: actionable.description || "",
@@ -170,7 +233,7 @@ export const syncActionableToHubSpot = internalAction({
 							? new Date(actionable.dueDate).toISOString()
 							: new Date().toISOString(),
 					},
-					associations: [],
+					associations: associations.length > 0 ? associations : [],
 				};
 
 				const response: { id: string } = await hubspotClient.crm.objects.tasks.basicApi.create(
@@ -216,6 +279,24 @@ export const syncActionableToHubSpot = internalAction({
 
 			throw error;
 		}
+	},
+});
+
+/**
+ * Sync an actionable to HubSpot with contact associations (wrapper)
+ */
+export const syncActionableToHubSpotWithContacts = internalAction({
+	args: {
+		actionableId: v.id("actionables"),
+		userId: v.string(),
+		contactIds: v.array(v.string()),
+	},
+	handler: async (ctx, args): Promise<{ success: boolean; crmEntityId: string; crmEntityType: string }> => {
+		return await ctx.runAction(internal.crmSync.syncActionableToHubSpot, {
+			actionableId: args.actionableId,
+			userId: args.userId,
+			contactIds: args.contactIds,
+		});
 	},
 });
 
@@ -345,6 +426,58 @@ export const retrySyncManually = action({
 		// Retry the sync
 		return await ctx.runAction(internal.crmSync.retryFailedSyncInternal, {
 			syncId: args.syncId,
+		});
+	},
+});
+
+/**
+ * Public action wrapper to sync a call to HubSpot (for testing/external use)
+ */
+export const syncCallToHubSpotPublic = action({
+	args: { callId: v.id("calls") },
+	handler: async (ctx, args): Promise<{ success: boolean; crmEntityId: string }> => {
+		const user = await authComponent.getAuthUser(ctx);
+		if (!user?.userId) {
+			throw new Error("Unauthorized");
+		}
+
+		// Verify the call belongs to the user
+		const call = await ctx.runQuery(internal.calls.getInternal, { callId: args.callId });
+		if (!call || call.userId !== user.userId) {
+			throw new Error("Call not found or unauthorized");
+		}
+
+		// Call the internal sync function
+		return await ctx.runAction(internal.crmSync.syncCallToHubSpot, {
+			callId: args.callId,
+			userId: user.userId,
+		});
+	},
+});
+
+/**
+ * Public action wrapper to sync an actionable to HubSpot (for testing/external use)
+ */
+export const syncActionableToHubSpotPublic = action({
+	args: { actionableId: v.id("actionables") },
+	handler: async (ctx, args): Promise<{ success: boolean; crmEntityId: string; crmEntityType: string }> => {
+		const user = await authComponent.getAuthUser(ctx);
+		if (!user?.userId) {
+			throw new Error("Unauthorized");
+		}
+
+		// Verify the actionable belongs to the user
+		const actionable = await ctx.runQuery(internal.actionables.getInternal, {
+			actionableId: args.actionableId,
+		});
+		if (!actionable || actionable.userId !== user.userId) {
+			throw new Error("Actionable not found or unauthorized");
+		}
+
+		// Call the internal sync function
+		return await ctx.runAction(internal.crmSync.syncActionableToHubSpot, {
+			actionableId: args.actionableId,
+			userId: user.userId,
 		});
 	},
 });

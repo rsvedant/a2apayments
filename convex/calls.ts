@@ -1,7 +1,8 @@
 import { v } from "convex/values";
-import { query, mutation, internalQuery } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { authComponent } from "./auth";
 import { callDataValidator } from "./validators";
+import type { Id } from "./_generated/dataModel";
 
 /**
  * List all calls for the authenticated user with optional filters and pagination
@@ -284,5 +285,86 @@ export const getInternal = internalQuery({
 	args: { callId: v.id("calls") },
 	handler: async (ctx, args) => {
 		return await ctx.db.get(args.callId);
+	},
+});
+
+/**
+ * Internal mutation to update call participants (for use in actions)
+ */
+export const updateParticipants = internalMutation({
+	args: {
+		callId: v.id("calls"),
+		participants: v.string(), // JSON string
+	},
+	handler: async (ctx, args) => {
+		await ctx.db.patch(args.callId, {
+			participants: args.participants,
+		});
+
+		return args.callId;
+	},
+});
+
+/**
+ * Internal mutation to update processing status with error tracking (for use in actions)
+ */
+export const updateProcessingStatusInternal = internalMutation({
+	args: {
+		callId: v.id("calls"),
+		status: v.union(
+			v.literal("pending"),
+			v.literal("processing"),
+			v.literal("completed"),
+			v.literal("failed")
+		),
+		error: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const call = await ctx.db.get(args.callId);
+		if (!call) {
+			throw new Error("Call not found");
+		}
+
+		const updateData: any = {
+			processingStatus: args.status,
+			lastProcessingAttempt: Date.now(),
+		};
+
+		if (args.status === "failed" && args.error) {
+			updateData.processingError = args.error;
+			updateData.processingAttempts = (call.processingAttempts || 0) + 1;
+		} else if (args.status === "completed") {
+			// Clear error on success
+			updateData.processingError = undefined;
+		}
+
+		await ctx.db.patch(args.callId, updateData);
+
+		return args.callId;
+	},
+});
+
+/**
+ * Internal query to get pending calls with transcriptions (for cron processing)
+ */
+export const getPendingCallsWithTranscription = internalQuery({
+	args: { limit: v.optional(v.number()) },
+	handler: async (ctx, args) => {
+		const pendingCalls = await ctx.db
+			.query("calls")
+			.withIndex("by_userId_and_status", (q) => q.eq("processingStatus", "pending"))
+			.collect();
+
+		// Filter to only calls with transcriptions
+		const callsWithTranscription = pendingCalls.filter(
+			(call) => call.transcription && call.transcription.trim().length > 0
+		);
+
+		// Apply limit if provided
+		if (args.limit) {
+			return callsWithTranscription.slice(0, args.limit);
+		}
+
+		return callsWithTranscription;
 	},
 });
