@@ -9,19 +9,24 @@ import { partialUserSettingsValidator, userSettingsValidator } from "./validator
 export const get = query({
 	args: {},
 	handler: async (ctx) => {
-		const user = await authComponent.getAuthUser(ctx);
-		if (!user?.userId) {
-			throw new Error("Unauthorized");
+		try {
+			const user = await authComponent.getAuthUser(ctx);
+			if (!user?.userId) {
+				return null;
+			}
+
+			const userId = user.userId;
+
+			const settings = await ctx.db
+				.query("userSettings")
+				.withIndex("by_userId", (q) => q.eq("userId", userId))
+				.first();
+
+			return settings;
+		} catch (error) {
+			// If unauthenticated, return null instead of throwing
+			return null;
 		}
-
-		const userId = user.userId;
-
-		const settings = await ctx.db
-			.query("userSettings")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
-
-		return settings;
 	},
 });
 

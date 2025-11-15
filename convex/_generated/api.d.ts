@@ -15,6 +15,7 @@ import type * as contactSync from "../contactSync.js";
 import type * as cron from "../cron.js";
 import type * as http from "../http.js";
 import type * as hubspotSync from "../hubspotSync.js";
+import type * as onboarding from "../onboarding.js";
 import type * as promptBuilder from "../promptBuilder.js";
 import type * as semanticExtraction from "../semanticExtraction.js";
 import type * as sessions from "../sessions.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   cron: typeof cron;
   http: typeof http;
   hubspotSync: typeof hubspotSync;
+  onboarding: typeof onboarding;
   promptBuilder: typeof promptBuilder;
   semanticExtraction: typeof semanticExtraction;
   sessions: typeof sessions;

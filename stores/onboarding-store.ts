@@ -53,6 +53,14 @@ export const useOnboardingStore = create<OnboardingState>()(
     }),
     {
       name: 'onboarding-storage',
+      // Don't persist File objects - they can't be serialized
+      partialize: (state) => ({
+        currentStep: state.currentStep,
+        hubspotConnected: state.hubspotConnected,
+        extensionConnected: state.extensionConnected,
+        isComplete: state.isComplete,
+        // Exclude salesScriptFiles and companyDocFiles
+      }),
     }
   )
 )
