@@ -2,7 +2,6 @@
 
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
-import OpenAI from "openai";
 
 /**
  * Extract semantic meaning from call transcription and determine HubSpot entities to create
@@ -50,12 +49,10 @@ export const extractSemanticEntities = internalAction({
 			endTime?: string;
 		};
 	}> => {
-		const openaiApiKey = process.env.OPENAI_API_KEY;
-		if (!openaiApiKey) {
-			throw new Error("OPENAI_API_KEY environment variable not set");
+		const geminiApiKey = process.env.GEMINI_API_KEY;
+		if (!geminiApiKey) {
+			throw new Error("GEMINI_API_KEY environment variable not set");
 		}
-
-		const openai = new OpenAI({ apiKey: openaiApiKey });
 
 		// Build context from user settings
 		let contextPrompt = "";
@@ -167,7 +164,8 @@ Important guidelines:
 - Use appropriate priorities for tickets (default to MEDIUM if unsure)
 - Use standard HubSpot deal stages: "appointmentscheduled", "qualifiedtobuy", "presentationscheduled", "decisionmakerboughtin", "closedwon", "closedlost"
 - Default pipeline is "default" for deals
-- Extract contact information from the transcription and merge with provided participants`;
+- Extract contact information from the transcription and merge with provided participants
+- You MUST return valid JSON only, no markdown formatting or code blocks`;
 
 		const userPrompt = `Analyze the following sales call transcription and determine what HubSpot entities to create:
 
@@ -180,22 +178,57 @@ ${args.transcription}
 Based on the semantic meaning of this conversation, determine what tickets, deals, notes, and meetings should be created in HubSpot.`;
 
 		try {
-			const response = await openai.chat.completions.create({
-				model: "gpt-4o-mini",
-				messages: [
-					{ role: "system", content: systemPrompt },
-					{ role: "user", content: userPrompt },
-				],
-				response_format: { type: "json_object" },
-				temperature: 0.3, // Lower temperature for more consistent extraction
-			});
+			// Combine system prompt and user prompt for Gemini
+			const fullPrompt = `${systemPrompt}\n\n${userPrompt}\n\nRemember: Return ONLY valid JSON, no markdown code blocks.`;
 
-			const content = response.choices[0]?.message?.content;
-			if (!content) {
-				throw new Error("Empty response from OpenAI");
+			const response = await fetch(
+				`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						contents: [
+							{
+								parts: [
+									{
+										text: fullPrompt,
+									},
+								],
+							},
+						],
+						generationConfig: {
+							temperature: 0.3,
+							responseMimeType: "application/json",
+						},
+					}),
+				}
+			);
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${errorText}`);
 			}
 
-			const extracted = JSON.parse(content);
+			const data = await response.json();
+
+			// Extract text from Gemini response
+			const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+			if (!content) {
+				throw new Error("Empty response from Gemini API");
+			}
+
+			// Parse JSON response (may need to clean markdown if present)
+			let extracted;
+			try {
+				// Remove markdown code blocks if present
+				const cleanedContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+				extracted = JSON.parse(cleanedContent);
+			} catch (parseError: any) {
+				console.error("Failed to parse Gemini response:", content);
+				throw new Error(`Failed to parse JSON response: ${parseError.message}`);
+			}
 
 			// Validate and normalize the response
 			const contacts = Array.isArray(extracted.contacts) ? extracted.contacts : [];
@@ -284,7 +317,7 @@ Based on the semantic meaning of this conversation, determine what tickets, deal
 				},
 			};
 		} catch (error: any) {
-			console.error("OpenAI extraction error:", error);
+			console.error("Gemini extraction error:", error);
 			throw new Error(`Failed to extract semantic entities: ${error.message}`);
 		}
 	},

@@ -181,6 +181,33 @@ export const getInternal = internalQuery({
 });
 
 /**
+ * Internal mutation to create a call (for testing - bypasses auth)
+ */
+export const createInternal = internalMutation({
+	args: {
+		userId: v.string(),
+		title: v.string(),
+		transcription: v.string(),
+		participants: v.optional(v.string()),
+		duration: v.optional(v.number()),
+		recordingUrl: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const callId = await ctx.db.insert("calls", {
+			userId: args.userId,
+			title: args.title,
+			transcription: args.transcription,
+			participants: args.participants ?? "[]",
+			duration: args.duration,
+			recordingUrl: args.recordingUrl,
+			processed: false,
+		});
+
+		return callId;
+	},
+});
+
+/**
  * Internal mutation to update call participants (for use in actions)
  */
 export const updateParticipants = internalMutation({
