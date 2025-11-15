@@ -101,52 +101,8 @@ export const update = mutation({
 		if (args.systemPrompt !== undefined) updates.systemPrompt = args.systemPrompt;
 		if (args.salesScript !== undefined) updates.salesScript = args.salesScript;
 		if (args.companyDocs !== undefined) updates.companyDocs = args.companyDocs;
-		if (args.hubspotApiKey !== undefined) updates.hubspotApiKey = args.hubspotApiKey;
-		if (args.hubspotEnabled !== undefined) updates.hubspotEnabled = args.hubspotEnabled;
 
 		await ctx.db.patch(existing._id, updates);
-		return existing._id;
-	},
-});
-
-/**
- * Update HubSpot API key
- */
-export const updateHubSpotKey = mutation({
-	args: {
-		hubspotApiKey: v.string(),
-		hubspotEnabled: v.optional(v.boolean()),
-	},
-	handler: async (ctx, args) => {
-		const user = await authComponent.getAuthUser(ctx);
-		if (!user?.userId) {
-			throw new Error("Unauthorized");
-		}
-
-		const userId = user.userId;
-
-		const existing = await ctx.db
-			.query("userSettings")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
-
-		if (!existing) {
-			// Create settings with HubSpot key
-			const settingsId = await ctx.db.insert("userSettings", {
-				userId: userId,
-				hubspotApiKey: args.hubspotApiKey,
-				hubspotEnabled: args.hubspotEnabled ?? true,
-			});
-			return settingsId;
-		}
-
-		// Update existing settings
-		await ctx.db.patch(existing._id, {
-			hubspotApiKey: args.hubspotApiKey,
-			...(args.hubspotEnabled !== undefined && {
-				hubspotEnabled: args.hubspotEnabled,
-			}),
-		});
 		return existing._id;
 	},
 });
@@ -239,30 +195,6 @@ export const updateCompanyDocs = mutation({
 });
 
 /**
- * Toggle HubSpot integration on/off
+ * Note: HubSpot sync is now globally enabled via HUBSPOT_API_KEY environment variable
+ * Per-user HubSpot toggle has been removed
  */
-export const toggleHubSpot = mutation({
-	args: { enabled: v.boolean() },
-	handler: async (ctx, args) => {
-		const user = await authComponent.getAuthUser(ctx);
-		if (!user?.userId) {
-			throw new Error("Unauthorized");
-		}
-
-		const userId = user.userId;
-
-		const existing = await ctx.db
-			.query("userSettings")
-			.withIndex("by_userId", (q) => q.eq("userId", userId))
-			.first();
-
-		if (!existing) {
-			throw new Error("Settings not found. Create settings first.");
-		}
-
-		await ctx.db.patch(existing._id, {
-			hubspotEnabled: args.enabled,
-		});
-		return existing._id;
-	},
-});

@@ -17,9 +17,11 @@ export const processCallTranscription = internalAction({
 		success: boolean; 
 		ticketsCreated: number; 
 		dealsCreated: number;
+		emailsSent?: number;
 		extracted?: any; // Include extraction results for testing
 		error?: string;
 		hubspotSyncEnabled?: boolean;
+		agentmailSyncEnabled?: boolean;
 	}> => {
 		try {
 			// Get call data
@@ -32,11 +34,21 @@ export const processCallTranscription = internalAction({
 				throw new Error("Call has no transcription");
 			}
 
-			// Get user settings for context and HubSpot config
-			const settings = await ctx.runQuery(internal.userSettings.getInternal, { userId: args.userId });
-			
-			// Check if HubSpot is configured (but don't fail if it's not)
-			const hubspotEnabled = !!(settings?.hubspotApiKey && settings.hubspotEnabled);
+		// Get user settings for context and Agentmail config
+		const settings = await ctx.runQuery(internal.userSettings.getInternal, { userId: args.userId });
+		
+		// Check if HubSpot is configured (via environment variable)
+		const hubspotApiKey = process.env.HUBSPOT_API_KEY;
+		const hubspotEnabled = !!hubspotApiKey;
+		
+		if (!hubspotApiKey) {
+			console.warn("[HubSpot] HUBSPOT_API_KEY environment variable not set. HubSpot sync will be disabled.");
+		} else {
+			console.log("[HubSpot] API key found, sync enabled");
+		}
+		
+		// Check if Agentmail is configured (per-user settings)
+		const agentmailEnabled = !!(settings?.agentmailApiKey && settings.agentmailEnabled);
 
 			// Extract semantic entities using LLM (always runs, regardless of HubSpot config)
 			const extracted = await ctx.runAction(internal.semanticExtraction.extractSemanticEntities, {
@@ -57,31 +69,32 @@ export const processCallTranscription = internalAction({
 				});
 			}
 
-			// Only sync to HubSpot if it's configured
-			let ticketsCreated = 0;
-			let dealsCreated = 0;
-			let contactIds: string[] = [];
+		// Only sync to HubSpot if it's configured
+		let ticketsCreated = 0;
+		let dealsCreated = 0;
+		let emailsSent = 0;
+		let contactIds: string[] = [];
 
 			if (hubspotEnabled) {
 				// Process participants to HubSpot contacts
 				if (extracted.contacts && extracted.contacts.length > 0) {
 					const participantsJson = JSON.stringify(extracted.contacts);
-					try {
-						contactIds = await ctx.runAction(internal.contactSync.processParticipantsToContacts, {
-							participantsJson,
-							hubspotApiKey: settings.hubspotApiKey!,
-						});
-					} catch (error: any) {
-						console.error("Failed to process participants to contacts:", error);
-						// Continue even if contact sync fails
-					}
-				} else if (call.participants) {
-					// Process existing participants even if not enriched
-					try {
-						contactIds = await ctx.runAction(internal.contactSync.processParticipantsToContacts, {
-							participantsJson: call.participants,
-							hubspotApiKey: settings.hubspotApiKey!,
-						});
+				try {
+					contactIds = await ctx.runAction(internal.contactSync.processParticipantsToContacts, {
+						participantsJson,
+						hubspotApiKey: hubspotApiKey,
+					});
+				} catch (error: any) {
+					console.error("Failed to process participants to contacts:", error);
+					// Continue even if contact sync fails
+				}
+			} else if (call.participants) {
+				// Process existing participants even if not enriched
+				try {
+					contactIds = await ctx.runAction(internal.contactSync.processParticipantsToContacts, {
+						participantsJson: call.participants,
+						hubspotApiKey: hubspotApiKey,
+					});
 					} catch (error: any) {
 						console.error("Failed to process participants to contacts:", error);
 					}
@@ -91,60 +104,60 @@ export const processCallTranscription = internalAction({
 					console.warn("No contacts found/created for this call. Continuing with entity creation...");
 				}
 
-				// Create tickets in HubSpot
-				for (const ticket of extracted.tickets) {
-					try {
-						await ctx.runAction(internal.hubspotSync.createTicket, {
-							ticket,
-							contactIds,
-							hubspotApiKey: settings.hubspotApiKey!,
-						});
-						ticketsCreated++;
-					} catch (error: any) {
-						console.error(`Failed to create ticket: ${ticket.subject}`, error);
-						// Continue processing other entities
-					}
-				}
-
-				// Create deals in HubSpot
-				for (const deal of extracted.deals) {
-					try {
-						await ctx.runAction(internal.hubspotSync.createDeal, {
-							deal,
-							contactIds,
-							hubspotApiKey: settings.hubspotApiKey!,
-						});
-						dealsCreated++;
-					} catch (error: any) {
-						console.error(`Failed to create deal: ${deal.dealname}`, error);
-						// Continue processing other entities
-					}
-				}
-
-				// Create note in HubSpot (always created)
+			// Create tickets in HubSpot
+			for (const ticket of extracted.tickets) {
 				try {
-					await ctx.runAction(internal.hubspotSync.createNote, {
-						note: extracted.note,
+					await ctx.runAction(internal.hubspotSync.createTicket, {
+						ticket,
 						contactIds,
-						hubspotApiKey: settings.hubspotApiKey!,
-						timestamp: new Date(call._creationTime).toISOString(),
+						hubspotApiKey: hubspotApiKey,
 					});
+					ticketsCreated++;
 				} catch (error: any) {
-					console.error("Failed to create note:", error);
-					// Continue even if note creation fails
+					console.error(`Failed to create ticket: ${ticket.subject}`, error);
+					// Continue processing other entities
 				}
+			}
 
-				// Create meeting in HubSpot (always created)
+			// Create deals in HubSpot
+			for (const deal of extracted.deals) {
 				try {
-					await ctx.runAction(internal.hubspotSync.createMeeting, {
-						meeting: extracted.meeting,
+					await ctx.runAction(internal.hubspotSync.createDeal, {
+						deal,
 						contactIds,
-						hubspotApiKey: settings.hubspotApiKey!,
+						hubspotApiKey: hubspotApiKey,
 					});
+					dealsCreated++;
 				} catch (error: any) {
-					console.error("Failed to create meeting:", error);
-					// Continue even if meeting creation fails
+					console.error(`Failed to create deal: ${deal.dealname}`, error);
+					// Continue processing other entities
 				}
+			}
+
+			// Create note in HubSpot (always created)
+			try {
+				await ctx.runAction(internal.hubspotSync.createNote, {
+					note: extracted.note,
+					contactIds,
+					hubspotApiKey: hubspotApiKey,
+					timestamp: new Date(call._creationTime).toISOString(),
+				});
+			} catch (error: any) {
+				console.error("Failed to create note:", error);
+				// Continue even if note creation fails
+			}
+
+			// Create meeting in HubSpot (always created)
+			try {
+				await ctx.runAction(internal.hubspotSync.createMeeting, {
+					meeting: extracted.meeting,
+					contactIds,
+					hubspotApiKey: hubspotApiKey,
+				});
+			} catch (error: any) {
+				console.error("Failed to create meeting:", error);
+				// Continue even if meeting creation fails
+			}
 			} else {
 				console.log("HubSpot not configured. Skipping HubSpot sync, but extraction results are available.");
 			}
@@ -161,24 +174,28 @@ export const processCallTranscription = internalAction({
 					: undefined,
 			});
 
-			return {
-				success: true,
-				ticketsCreated,
-				dealsCreated,
-				extracted, // Include extraction results for testing
-				hubspotSyncEnabled: hubspotEnabled,
-			};
+		return {
+			success: true,
+			ticketsCreated,
+			dealsCreated,
+			emailsSent,
+			extracted, // Include extraction results for testing
+			hubspotSyncEnabled: hubspotEnabled,
+			agentmailSyncEnabled: agentmailEnabled,
+		};
 		} catch (error: any) {
 			const errorMessage = error.message || "Unknown error";
 			console.error(`Failed to process call ${args.callId}:`, errorMessage);
 
-			return {
-				success: false,
-				ticketsCreated: 0,
-				dealsCreated: 0,
-				error: errorMessage,
-				hubspotSyncEnabled: false,
-			};
+		return {
+			success: false,
+			ticketsCreated: 0,
+			dealsCreated: 0,
+			emailsSent: 0,
+			error: errorMessage,
+			hubspotSyncEnabled: false,
+			agentmailSyncEnabled: false,
+		};
 		}
 	},
 });

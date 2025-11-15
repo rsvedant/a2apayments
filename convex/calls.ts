@@ -272,4 +272,42 @@ export const getUnprocessedCalls = internalQuery({
 	},
 });
 
+/**
+ * Get call processing stats (for debugging cron jobs)
+ */
+export const getProcessingStats = query({
+	args: {},
+	handler: async (ctx) => {
+		const user = await authComponent.getAuthUser(ctx);
+		if (!user?.userId) {
+			throw new Error("Unauthorized");
+		}
+
+		const userId = user.userId;
+
+		// Get all calls for this user
+		const allCalls = await ctx.db
+			.query("calls")
+			.withIndex("by_userId", (q) => q.eq("userId", userId))
+			.collect();
+
+		const totalCalls = allCalls.length;
+		const processedCalls = allCalls.filter((c) => c.processed).length;
+		const unprocessedWithTranscription = allCalls.filter(
+			(c) => !c.processed && c.transcription && c.transcription.trim().length > 0
+		).length;
+		const unprocessedWithoutTranscription = allCalls.filter(
+			(c) => !c.processed && (!c.transcription || c.transcription.trim().length === 0)
+		).length;
+
+		return {
+			totalCalls,
+			processedCalls,
+			unprocessedWithTranscription,
+			unprocessedWithoutTranscription,
+			processingRate: totalCalls > 0 ? (processedCalls / totalCalls * 100).toFixed(1) + '%' : '0%',
+		};
+	},
+});
+
 

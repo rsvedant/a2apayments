@@ -52,31 +52,65 @@ http.route({
 				);
 			}
 
-			// Create call using internal mutation (bypasses auth)
-			const callId = await ctx.runMutation(internal.calls.createInternal, {
-				userId: body.userId,
-				title: body.title,
-				transcription: body.transcription,
-				participants: body.participants || "[]",
-				duration: body.duration,
-				recordingUrl: body.recordingUrl,
-			});
+		// Create call using internal mutation (bypasses auth)
+		const callId = await ctx.runMutation(internal.calls.createInternal, {
+			userId: body.userId,
+			title: body.title,
+			transcription: body.transcription,
+			participants: body.participants || "[]",
+			duration: body.duration,
+			recordingUrl: body.recordingUrl,
+		});
 
-			// Return success response
+		// Process the call immediately instead of waiting for cron
+		let processingResult;
+		try {
+			processingResult = await ctx.runAction(internal.callProcessing.processCallTranscription, {
+				callId: callId,
+				userId: body.userId,
+			});
+		} catch (processingError: any) {
+			console.error("Error processing call:", processingError);
+			// Still return success for call creation, but indicate processing failed
 			return new Response(
 				JSON.stringify({
 					success: true,
 					callId: callId,
-					message: "Call created successfully. It will be processed by cron within 1 minute.",
+					processed: false,
+					processingError: processingError.message,
+					message: "Call created but processing failed. You can manually process it later.",
 				}),
 				{
 					status: 200,
 					headers: {
 						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": "*", // Allow CORS for extension
+						"Access-Control-Allow-Origin": "*",
 					},
 				}
 			);
+		}
+
+		// Return success response with processing results
+		return new Response(
+			JSON.stringify({
+				success: true,
+				callId: callId,
+				processed: processingResult.success,
+				ticketsCreated: processingResult.ticketsCreated,
+				dealsCreated: processingResult.dealsCreated,
+				emailsSent: processingResult.emailsSent,
+				hubspotSyncEnabled: processingResult.hubspotSyncEnabled,
+				agentmailSyncEnabled: processingResult.agentmailSyncEnabled,
+				message: "Call created and processed successfully!",
+			}),
+			{
+				status: 200,
+				headers: {
+					"Content-Type": "application/json",
+					"Access-Control-Allow-Origin": "*", // Allow CORS for extension
+				},
+			}
+		);
 		} catch (error: any) {
 			console.error("Error creating call via HTTP:", error);
 			return new Response(
