@@ -29,7 +29,7 @@ export default defineSchema({
 		processed: v.boolean(), // Has this call been processed?
 	})
 		.index("by_userId", ["userId"])
-		.index("by_userId_and_processed", ["userId", "processed"])
+		.index("by_userId_and_processed", ["userId", "processed"]),
 
 	// CRM sync status tracking
 	// crmSyncStatus: defineTable({
@@ -68,4 +68,45 @@ export default defineSchema({
 	// 	dealLikelihood: v.optional(v.number()), // 0-100 score
 	// 	summary: v.optional(v.string()),
 	// }).index("by_callId", ["callId"]),
+
+	// Realtime session tracking
+	sessions: defineTable({
+		userId: v.string(),
+		callId: v.optional(v.id("calls")),
+		agenda: v.string(),
+		companyEmail: v.string(),
+		companyName: v.optional(v.string()),
+		systemPrompt: v.string(),
+		status: v.union(
+			v.literal("active"),
+			v.literal("ended"),
+			v.literal("error")
+		),
+		startedAt: v.number(), // Timestamp
+		endedAt: v.optional(v.number()), // Timestamp
+		livekitRoomName: v.optional(v.string()),
+		livekitParticipantId: v.optional(v.string()),
+		transcription: v.optional(v.string()), // Full transcription
+		suggestionCount: v.number(), // Total AI suggestions generated
+		conversationExchanges: v.number(), // Number of back-and-forth exchanges tracked
+		errorMessage: v.optional(v.string()),
+	})
+		.index("by_userId", ["userId"])
+		.index("by_userId_and_status", ["userId", "status"])
+		.index("by_livekitRoomName", ["livekitRoomName"]),
+
+	// AI Suggestions during realtime sessions
+	suggestions: defineTable({
+		sessionId: v.id("sessions"),
+		userId: v.string(),
+		suggestionText: v.string(),
+		context: v.string(), // Recent conversation context that triggered this suggestion
+		timestamp: v.number(), // When the suggestion was generated
+		exchangeNumber: v.number(), // Which conversation exchange this was for
+		displayed: v.boolean(), // Whether shown to user
+		helpful: v.optional(v.boolean()), // User feedback
+	})
+		.index("by_sessionId", ["sessionId"])
+		.index("by_userId", ["userId"])
+		.index("by_timestamp", ["timestamp"]),
 });
