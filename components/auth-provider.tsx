@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }}
             Link={Link as any}
             social={{
-                providers: ["github"]
+                providers: ["google"]
             }}
             passkey
             twoFactor={["otp", "totp"]}
