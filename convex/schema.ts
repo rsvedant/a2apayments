@@ -57,9 +57,9 @@ export default defineSchema({
 			v.literal("cancelled")
 		),
 
-		// crmSynced: v.boolean(),
-		// crmEntityId: v.optional(v.string()), // HubSpot entity ID
-		// crmEntityType: v.optional(v.string()), // "task", "deal", "engagement"
+		crmSynced: v.boolean(),
+		crmEntityId: v.optional(v.string()), // HubSpot entity ID
+		crmEntityType: v.optional(v.string()), // "task", "deal", "engagement"
 	})
 		.index("by_userId", ["userId"])
 		.index("by_callId", ["callId"])
