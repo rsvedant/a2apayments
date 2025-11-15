@@ -2,12 +2,14 @@
 
 import { motion } from "framer-motion"
 import { RedirectToSignIn, SignedIn, ProvidersCard, SessionsCard, DeleteAccountCard, ChangePasswordCard, TwoFactorCard, PasskeysCard } from "@daveyplate/better-auth-ui"
+import { AccountSidebar } from "./account-sidebar"
 
 export function SecuritySettingsPage() {
   return (
     <>
       <RedirectToSignIn />
       <SignedIn>
+        <AccountSidebar />
         <div className="h-screen overflow-y-auto ios-scroll scroll-container bg-background lg:pl-64">
 
           <div className="mx-auto max-w-3xl px-6 pt-20 lg:pt-6 pb-24">

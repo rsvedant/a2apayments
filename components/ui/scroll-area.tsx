@@ -7,14 +7,13 @@ interface ScrollAreaProps
   orientation?: 'vertical' | 'horizontal'
 }
 
-function ScrollArea({
-  className,
-  children,
-  orientation = 'vertical',
-  ...props
-}: ScrollAreaProps) {
+const ScrollArea = React.forwardRef<
+  React.ElementRef<typeof ScrollAreaPrimitive.Root>,
+  ScrollAreaProps
+>(({ className, children, orientation = 'vertical', ...props }, ref) => {
   return (
     <ScrollAreaPrimitive.Root
+      ref={ref}
       data-slot='scroll-area'
       className={cn('relative', className)}
       {...props}
@@ -32,7 +31,8 @@ function ScrollArea({
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )
-}
+})
+ScrollArea.displayName = 'ScrollArea'
 
 function ScrollBar({
   className,
