@@ -1,0 +1,398 @@
+/* Caption Area at Bottom (like Google Meet captions) */
+.caption-area-container {
+  position: fixed;
+  bottom: 80px; /* Above toolbar */
+  left: 0;
+  right: 0;
+  height: 20vh; /* Bottom 20% of screen */
+  min-height: 180px;
+  max-height: 300px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(20, 20, 25, 0.95) 20%, rgba(20, 20, 25, 0.98) 100%);
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Header */
+.caption-area-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.caption-area-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+}
+
+.caption-area-title svg {
+  color: #8ab4f8;
+}
+
+.caption-area-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.caption-control-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.caption-control-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.05);
+}
+
+.caption-control-btn:active {
+  transform: scale(0.95);
+}
+
+/* Content Area */
+.caption-area-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+}
+
+/* Suggestions Display (Large Text) */
+.suggestions-display {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suggestions-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.loading-spinner-large {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(138, 180, 248, 0.2);
+  border-top: 3px solid #8ab4f8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.suggestions-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}
+
+.suggestions-empty svg {
+  opacity: 0.5;
+}
+
+.suggestions-empty p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.suggestions-list-large {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.suggestion-item-large {
+  background: rgba(138, 180, 248, 0.1);
+  border: 1px solid rgba(138, 180, 248, 0.3);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.suggestion-item-large:hover {
+  background: rgba(138, 180, 248, 0.15);
+  border-color: rgba(138, 180, 248, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(138, 180, 248, 0.2);
+}
+
+.suggestion-item-large:active {
+  transform: translateY(0);
+}
+
+.suggestion-number-large {
+  background: linear-gradient(135deg, #8ab4f8 0%, #5e8dd6 100%);
+  color: #000;
+  font-weight: 700;
+  font-size: 18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(138, 180, 248, 0.3);
+}
+
+.suggestion-text-large {
+  flex: 1;
+  color: #ffffff;
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.copy-icon-large {
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.suggestion-item-large:hover .copy-icon-large {
+  color: rgba(255, 255, 255, 0.9);
+  transform: scale(1.1);
+}
+
+/* Transcription Display */
+.transcription-display {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.transcription-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.transcription-empty svg {
+  opacity: 0.5;
+}
+
+.transcription-empty p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.transcription-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transcription-line {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  line-height: 1.5;
+  border-left: 3px solid rgba(138, 180, 248, 0.3);
+}
+
+/* Scrollbar */
+.transcription-display::-webkit-scrollbar,
+.caption-area-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transcription-display::-webkit-scrollbar-track,
+.caption-area-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.transcription-display::-webkit-scrollbar-thumb,
+.caption-area-content::-webkit-scrollbar-thumb {
+  background: rgba(138, 180, 248, 0.3);
+  border-radius: 4px;
+}
+
+.transcription-display::-webkit-scrollbar-thumb:hover,
+.caption-area-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 180, 248, 0.5);
+}
+
+/* Animations */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* API Key Prompt (keep existing styles) */
+.api-key-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.api-key-prompt-content {
+  background: rgba(30, 30, 35, 0.98);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 550px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.api-key-field {
+  margin-bottom: 20px;
+}
+
+.api-key-field label {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.api-key-prompt-content h3 {
+  margin: 0 0 12px 0;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.api-key-prompt-content p {
+  margin: 0 0 24px 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.api-key-prompt-content input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.api-key-prompt-content input:focus {
+  outline: none;
+  border-color: #8ab4f8;
+  background: rgba(138, 180, 248, 0.05);
+}
+
+.api-key-prompt-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.api-key-prompt-actions button {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.api-key-prompt-actions button:first-child {
+  background: linear-gradient(135deg, #8ab4f8 0%, #5e8dd6 100%);
+  color: #000;
+}
+
+.api-key-prompt-actions button:first-child:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(138, 180, 248, 0.3);
+}
+
+.api-key-prompt-actions button:last-child {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.api-key-prompt-actions button:last-child:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.api-key-prompt-content small {
+  display: block;
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.api-key-prompt-content small a {
+  color: #8ab4f8;
+  text-decoration: none;
+}
+
+.api-key-prompt-content small a:hover {
+  text-decoration: underline;
+}
