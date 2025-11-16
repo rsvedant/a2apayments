@@ -19,7 +19,7 @@ export function OnboardingLayout({
       <div className='container mx-auto px-4 py-8'>
         {/* Logo/Brand */}
         <div className='mb-8'>
-          <h1 className='text-2xl font-bold text-primary'>SaleSister</h1>
+          <h1 className='text-2xl font-bold text-primary'>SalesPay</h1>
           <p className='text-sm text-muted-foreground'>
             AI-powered sales assistance
           </p>

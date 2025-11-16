@@ -10,7 +10,7 @@ import { CompanyDocsUpload } from '@/components/onboarding/company-docs-upload'
 import { HubspotConnect } from '@/components/onboarding/hubspot-connect'
 import { LocusConnect } from '@/components/onboarding/locus-connect'
 import { ExtensionConnect } from '@/components/onboarding/extension-connect'
-import { useMutation, useQuery } from 'convex/react'
+import { Authenticated, AuthLoading, Unauthenticated, useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
@@ -24,32 +24,57 @@ const ONBOARDING_STEPS = [
 ]
 
 export default function OnboardingPage() {
+  return (
+    <>
+      <AuthLoading>
+        <LoadingLayout title="Loading..." description="Checking your account..." />
+      </AuthLoading>
+      <Unauthenticated>
+        <RedirectToSignIn />
+      </Unauthenticated>
+      <Authenticated>
+        <OnboardingContent />
+      </Authenticated>
+    </>
+  )
+}
+
+function LoadingLayout({ title, description }: { title: string; description: string }) {
+  return (
+    <OnboardingLayout title={title} description={description}>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    </OnboardingLayout>
+  )
+}
+
+function RedirectToSignIn() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.push('/auth/sign-in')
+  }, [router])
+
+  return (
+    <LoadingLayout title="Redirecting..." description="Taking you to sign in..." />
+  )
+}
+
+function OnboardingContent() {
   const router = useRouter()
   const { currentStep, setCurrentStep, completeOnboarding: completeOnboardingStore } = useOnboardingStore()
   const [step, setStep] = useState(currentStep)
   const [isSaving, setIsSaving] = useState(false)
   const completeOnboardingMutation = useMutation(api.onboarding.completeOnboarding)
   const { toast } = useToast()
-
-  // Check authentication
-  const user = useQuery(api.auth.getCurrentUser)
   const userSettings = useQuery(api.userSettings.get)
 
   useEffect(() => {
-    // Redirect to dashboard if already completed onboarding
     if (userSettings !== undefined && userSettings !== null) {
-      // User has settings, which means they've completed onboarding
-      // But let them redo it if they want
       console.log('User has existing settings, allowing re-onboarding')
     }
   }, [userSettings])
-
-  // Redirect to sign in if not authenticated
-  useEffect(() => {
-    if (user === null) {
-      router.push('/auth/sign-in')
-    }
-  }, [user, router])
 
   const handleNext = () => {
     const nextStep = step + 1
@@ -67,7 +92,6 @@ export default function OnboardingPage() {
     setIsSaving(true)
 
     try {
-      // Get all the data from localStorage
       const salesScript = localStorage.getItem('onboarding_salesScript') || undefined
       const companyDocs = localStorage.getItem('onboarding_companyDocs') || undefined
       const mossIndexName = localStorage.getItem('onboarding_mossIndexName') || undefined
@@ -77,7 +101,6 @@ export default function OnboardingPage() {
       const locusWalletAddress = localStorage.getItem('onboarding_locusWalletAddress') || undefined
       const locusEnabled = localStorage.getItem('onboarding_locusEnabled') === 'true'
 
-      // Save everything to Convex
       await completeOnboardingMutation({
         salesScript,
         companyDocs,
@@ -89,10 +112,8 @@ export default function OnboardingPage() {
         locusEnabled,
       })
 
-      // Mark onboarding as complete in the store
       completeOnboardingStore()
 
-      // Clean up localStorage
       localStorage.removeItem('onboarding_salesScript')
       localStorage.removeItem('onboarding_companyDocs')
       localStorage.removeItem('onboarding_mossIndexName')
@@ -114,34 +135,10 @@ export default function OnboardingPage() {
       })
     } finally {
       setIsSaving(false)
-      // ALWAYS redirect to dashboard regardless of save success
       router.push('/dashboard')
     }
   }
 
-  // Show loading state while checking auth
-  if (user === undefined) {
-    return (
-      <OnboardingLayout title="Loading..." description="Checking your account...">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </OnboardingLayout>
-    )
-  }
-
-  // Show loading while redirecting to sign in
-  if (user === null) {
-    return (
-      <OnboardingLayout title="Redirecting..." description="Taking you to sign in...">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </OnboardingLayout>
-    )
-  }
-
-  // Show saving state
   if (isSaving) {
     return (
       <OnboardingLayout title="Saving..." description="Finalizing your setup...">

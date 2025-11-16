@@ -11,8 +11,8 @@ export default function Home() {
 			{/* Hero Section */}
 			<div className="text-center mb-20 space-y-6">
 				<div className="inline-block">
-					<h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-gradient-to-r from-primary via-blue-500 to-purple-600 bg-clip-text text-transparent">
-						AgentSale
+					<h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-linear-to-r from-primary via-blue-500 to-purple-600 bg-clip-text text-transparent">
+						SalesPay
 					</h1>
 				</div>
 				<p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Zap, TrendingUp, FileText, PhoneCall, Clock, Target } from 'lucide-react'
+import { Zap, TrendingUp, FileText, PhoneCall, Clock, Target, DollarSign, CheckCircle2 } from 'lucide-react'
 import { Line, LineChart, Pie, PieChart, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { Progress } from '@/components/ui/progress'
 import { CallDetailDialog } from './call-detail-dialog'
@@ -42,6 +42,23 @@ const personalGoals = [
   { goal: 'Win Rate', current: 57, target: 65, unit: '%' },
   { goal: 'Revenue', current: 224000, target: 300000, unit: '$' },
   { goal: 'AI Acceptance', current: 87, target: 90, unit: '%' },
+]
+
+// Expected Invoices
+const expectedInvoices = [
+  { company: 'Nitish Chowdary', amount: '$3.50', dueDate: 'Dec 15', status: 'pending' as const },
+  { company: 'Aadil Sengupta', amount: '$2.75', dueDate: 'Dec 18', status: 'pending' as const },
+  { company: 'Vedant Singh', amount: '$4.00', dueDate: 'Dec 22', status: 'pending' as const },
+]
+
+// Recently Paid Invoices
+const paidInvoices = [
+  { company: 'Nitish Chowdary', amount: '$0.15', paidDate: 'Dec 10', status: 'paid' as const },
+  { company: 'Nitish Chowdary', amount: '$0.08', paidDate: 'Dec 9', status: 'paid' as const },
+  { company: 'Nitish Chowdary', amount: '$0.22', paidDate: 'Dec 8', status: 'paid' as const },
+  { company: 'Nitish Chowdary', amount: '$0.12', paidDate: 'Dec 7', status: 'paid' as const },
+  { company: 'Nitish Chowdary', amount: '$0.18', paidDate: 'Dec 5', status: 'paid' as const },
+  { company: 'Nitish Chowdary', amount: '$0.09', paidDate: 'Dec 3', status: 'paid' as const },
 ]
 
 export function SalesAssistant() {
@@ -155,6 +172,93 @@ export function SalesAssistant() {
             <p className='text-xs text-muted-foreground'>
               Last synced 2h ago
             </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Invoices Row */}
+      <div className='grid gap-4 md:grid-cols-2'>
+        {/* Expected Invoices */}
+        <Card>
+          <CardHeader>
+            <div className='flex items-center justify-between'>
+              <div>
+                <CardTitle>Expected Invoices</CardTitle>
+                <p className='text-sm text-muted-foreground'>
+                  Upcoming payments from clients
+                </p>
+              </div>
+              <DollarSign className='h-5 w-5 text-muted-foreground' />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-3'>
+              {expectedInvoices.map((invoice, index) => (
+                <div 
+                  key={index}
+                  className='flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors'
+                >
+                  <div className='space-y-1'>
+                    <p className='text-sm font-medium text-foreground'>{invoice.company}</p>
+                    <p className='text-xs text-muted-foreground'>Due: {invoice.dueDate}</p>
+                  </div>
+                  <div className='text-right'>
+                    <p className='text-sm font-bold text-foreground'>{invoice.amount}</p>
+                    <span className='inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'>
+                      Pending
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className='mt-4 pt-4 border-t'>
+              <div className='flex items-center justify-between'>
+                <p className='text-sm font-medium text-muted-foreground'>Total Expected</p>
+                <p className='text-lg font-bold text-foreground'>$10.25</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recently Paid Invoices */}
+        <Card>
+          <CardHeader>
+            <div className='flex items-center justify-between'>
+              <div>
+                <CardTitle>Recently Paid</CardTitle>
+                <p className='text-sm text-muted-foreground'>
+                  Recently received payments
+                </p>
+              </div>
+              <CheckCircle2 className='h-5 w-5 text-green-600 dark:text-green-400' />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-3'>
+              {paidInvoices.map((invoice, index) => (
+                <div 
+                  key={index}
+                  className='flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors'
+                >
+                  <div className='space-y-1'>
+                    <p className='text-sm font-medium text-foreground'>{invoice.company}</p>
+                    <p className='text-xs text-muted-foreground'>Paid: {invoice.paidDate}</p>
+                  </div>
+                  <div className='text-right'>
+                    <p className='text-sm font-bold text-foreground'>{invoice.amount}</p>
+                    <span className='inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'>
+                      Paid
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className='mt-4 pt-4 border-t'>
+              <div className='flex items-center justify-between'>
+                <p className='text-sm font-medium text-muted-foreground'>Total Received</p>
+                <p className='text-lg font-bold text-green-600 dark:text-green-400'>$0.84</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

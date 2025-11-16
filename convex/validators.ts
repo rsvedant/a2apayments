@@ -108,6 +108,12 @@ export const userSettingsValidator = v.object({
 	systemPrompt: v.optional(v.string()),
 	salesScript: v.optional(v.string()),
 	companyDocs: v.optional(v.string()),
+	mossIndexName: v.optional(v.string()),
+	hubspotApiKey: v.optional(v.string()),
+	hubspotEnabled: v.boolean(),
+	locusApiKey: v.optional(v.string()),
+	locusWalletAddress: v.optional(v.string()),
+	locusEnabled: v.boolean(),
 });
 
 // Partial user settings validator (for updates)
@@ -115,4 +121,10 @@ export const partialUserSettingsValidator = v.object({
 	systemPrompt: v.optional(v.string()),
 	salesScript: v.optional(v.string()),
 	companyDocs: v.optional(v.string()),
+	mossIndexName: v.optional(v.string()),
+	hubspotApiKey: v.optional(v.string()),
+	hubspotEnabled: v.optional(v.boolean()),
+	locusApiKey: v.optional(v.string()),
+	locusWalletAddress: v.optional(v.string()),
+	locusEnabled: v.optional(v.boolean()),
 });

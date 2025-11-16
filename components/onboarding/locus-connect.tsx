@@ -71,8 +71,8 @@ export function LocusConnect({ onNext, onBack }: LocusConnectProps) {
   return (
     <div className='space-y-6'>
       <div className='text-center'>
-        <div className='mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mb-4'>
-          <Wallet className='h-10 w-10 text-white' />
+        <div className='mx-auto w-16 h-16 bg-linear-to-br from-neutral-100 to-neutral-300 dark:from-neutral-800 dark:to-neutral-600 rounded-lg flex items-center justify-center mb-4 border border-neutral-200 dark:border-neutral-700'>
+          <Wallet className='h-10 w-10 text-black dark:text-white' />
         </div>
         <h3 className='text-xl font-semibold mb-2'>Connect Locus Payments</h3>
         <p className='text-muted-foreground mb-2'>

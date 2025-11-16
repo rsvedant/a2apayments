@@ -9,6 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@openai/agents": "^0.3.2",
+    "openai": "^6.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

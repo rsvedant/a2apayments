@@ -21,7 +21,7 @@ export interface ConvexResponse {
 
 export class ConvexService {
   private userId: string | null = null;
-  private readonly CONVEX_ENDPOINT = 'https://adamant-hedgehog-462.convex.site/api/calls/create';
+  private readonly CONVEX_ENDPOINT = 'https://careful-puffin-39.convex.site/api/calls/create';
 
   constructor() {
     this.loadUserId();

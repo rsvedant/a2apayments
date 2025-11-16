@@ -3,6 +3,7 @@ import { GoogleMeetCaptionController, CaptionData, CompleteCaptionChunk } from '
 import { GeminiService } from '../services/GeminiService';
 import { ContextService } from '../services/ContextService';
 import { ConvexService } from '../services/ConvexService';
+import { OpenAIPaymentService } from '../services/OpenAIPaymentService';
 import MeetingSetup from './MeetingSetup';
 import './FloatingCaptions.css';
 
@@ -29,10 +30,16 @@ function FloatingCaptions() {
   const [isSavingCall, setIsSavingCall] = useState(false);
   const [meetingStartTime] = useState(Date.now());
   const [participants, setParticipants] = useState<Array<{ name: string; email: string }>>([]);
+  const [showPaymentConfig, setShowPaymentConfig] = useState(false);
+  const [openaiApiKeyInput, setOpenaiApiKeyInput] = useState('');
+  const [mcpServerUrlInput, setMcpServerUrlInput] = useState('https://docs.paywithlocus.com/~gitbook/mcp');
+  const [mcpTokenInput, setMcpTokenInput] = useState('');
+  const [walletAddressInput, setWalletAddressInput] = useState('');
   const controllerRef = useRef<GoogleMeetCaptionController | null>(null);
   const geminiServiceRef = useRef<GeminiService | null>(null);
   const contextServiceRef = useRef<ContextService | null>(null);
   const convexServiceRef = useRef<ConvexService | null>(null);
+  const openaiPaymentServiceRef = useRef<OpenAIPaymentService | null>(null);
   const captionContainerRef = useRef<HTMLDivElement>(null);
   const suggestionsContainerRef = useRef<HTMLDivElement>(null);
   const autoScrollTimerRef = useRef<number | null>(null);
@@ -49,6 +56,7 @@ function FloatingCaptions() {
       const contextService = new ContextService();
       const geminiService = new GeminiService(contextService);
       const convexService = new ConvexService();
+      const openaiPaymentService = new OpenAIPaymentService();
       const controller = new GoogleMeetCaptionController();
       
       // Initialize services
@@ -59,6 +67,7 @@ function FloatingCaptions() {
       geminiServiceRef.current = geminiService;
       contextServiceRef.current = contextService;
       convexServiceRef.current = convexService;
+      openaiPaymentServiceRef.current = openaiPaymentService;
 
       // Check if API key is configured
       setTimeout(() => {
@@ -378,11 +387,41 @@ function FloatingCaptions() {
       });
 
       if (result.success) {
-        alert(`✅ Meeting saved successfully!\n\nCall ID: ${result.callId}\n\nThe call will be processed and synced to HubSpot within 1 minute.`);
+        // Generate call summary for payment
+        const callSummary = conversationSummaryRef.current || 
+          `Meeting: ${title}\nDuration: ${Math.floor(duration / 60)} minutes\nParticipants: ${participants.map(p => p.name).join(', ')}`;
+        
+        // Execute OpenAI payment if configured
+        if (openaiPaymentServiceRef.current?.isConfigured()) {
+          // Get wallet address from storage
+          const storage = await chrome.storage.local.get(['paymentWalletAddress']);
+          const walletAddress = storage.paymentWalletAddress;
+          
+          if (walletAddress) {
+            console.log('[FloatingCaptions] Executing payment via OpenAI with MCP...');
+            const paymentResult = await openaiPaymentServiceRef.current.executePayment({
+              walletAddress,
+              callSummary,
+            });
+            
+            if (paymentResult.success) {
+              console.log('[FloatingCaptions] Payment executed:', paymentResult);
+              alert(`✅ Meeting saved successfully!\n\nCall ID: ${result.callId}\n\n💰 Payment sent: ${paymentResult.message}\n\nThe call will be processed and synced to HubSpot within 1 minute.`);
+            } else {
+              console.error('[FloatingCaptions] Payment failed:', paymentResult.error);
+              alert(`✅ Meeting saved successfully!\n\nCall ID: ${result.callId}\n\n⚠️ Payment failed: ${paymentResult.error}\n\nThe call will be processed and synced to HubSpot within 1 minute.`);
+            }
+          } else {
+            alert(`✅ Meeting saved successfully!\n\nCall ID: ${result.callId}\n\nThe call will be processed and synced to HubSpot within 1 minute.`);
+          }
+        } else {
+          alert(`✅ Meeting saved successfully!\n\nCall ID: ${result.callId}\n\nThe call will be processed and synced to HubSpot within 1 minute.`);
+        }
         
         // Clear transcription after successful save
         fullTranscriptionRef.current = [];
         conversationHistoryRef.current = [];
+        conversationSummaryRef.current = '';
         setCaptions([]);
         setSuggestions([]);
       } else {
@@ -402,6 +441,27 @@ function FloatingCaptions() {
     setShowMeetingSetup(false);
     // Extract participants after setup
     extractParticipants();
+  };
+
+  const handlePaymentConfigSubmit = async () => {
+    if (openaiPaymentServiceRef.current) {
+      if (openaiApiKeyInput.trim()) {
+        await openaiPaymentServiceRef.current.setApiKey(openaiApiKeyInput.trim());
+      }
+      if (mcpServerUrlInput.trim() && mcpTokenInput.trim()) {
+        await openaiPaymentServiceRef.current.setMcpConfig(
+          mcpServerUrlInput.trim(),
+          mcpTokenInput.trim()
+        );
+      }
+      if (walletAddressInput.trim()) {
+        await chrome.storage.local.set({ paymentWalletAddress: walletAddressInput.trim() });
+      }
+      setShowPaymentConfig(false);
+      setOpenaiApiKeyInput('');
+      setMcpTokenInput('');
+      setWalletAddressInput('');
+    }
   };
 
   return (
@@ -444,6 +504,63 @@ function FloatingCaptions() {
               <button onClick={() => setShowApiKeyPrompt(false)}>Skip</button>
             </div>
             <small>Get your API keys from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a></small>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Configuration Prompt */}
+      {showPaymentConfig && (
+        <div className="api-key-prompt">
+          <div className="api-key-prompt-content">
+            <h3>Configure Payment Settings</h3>
+            <p>Set up OpenAI with Locus MCP for automatic payments (via LLM7 proxy)</p>
+            
+            <div className="api-key-field">
+              <label>OpenAI API Key</label>
+              <input
+                type="password"
+                placeholder="sk-proj-..."
+                value={openaiApiKeyInput}
+                onChange={(e) => setOpenaiApiKeyInput(e.target.value)}
+              />
+            </div>
+
+            <div className="api-key-field">
+              <label>MCP Server URL</label>
+              <input
+                type="text"
+                placeholder="https://docs.paywithlocus.com/~gitbook/mcp"
+                value={mcpServerUrlInput}
+                onChange={(e) => setMcpServerUrlInput(e.target.value)}
+              />
+            </div>
+
+            <div className="api-key-field">
+              <label>MCP Token</label>
+              <input
+                type="password"
+                placeholder="locus_..."
+                value={mcpTokenInput}
+                onChange={(e) => setMcpTokenInput(e.target.value)}
+              />
+            </div>
+
+            <div className="api-key-field">
+              <label>Payment Wallet Address</label>
+              <input
+                type="text"
+                placeholder="0x..."
+                value={walletAddressInput}
+                onChange={(e) => setWalletAddressInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handlePaymentConfigSubmit()}
+              />
+            </div>
+
+            <div className="api-key-prompt-actions">
+              <button onClick={handlePaymentConfigSubmit}>Save</button>
+              <button onClick={() => setShowPaymentConfig(false)}>Skip</button>
+            </div>
+            <small>Configure OpenAI agent to make payments based on call summaries using LLM7 proxy. Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">OpenAI Platform</a></small>
           </div>
         </div>
       )}
@@ -491,6 +608,15 @@ function FloatingCaptions() {
           AI Sales Assistant
         </div>
         <div className="caption-area-controls">
+          {/* Payment Config Button */}
+          <button 
+            className="caption-control-btn"
+            onClick={() => setShowPaymentConfig(true)}
+            title="Configure payment settings"
+          >
+            💰
+          </button>
+
           {/* End Meeting & Save Button */}
           <button 
             className="caption-control-btn end-meeting-btn"
