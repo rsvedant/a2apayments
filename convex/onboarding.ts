@@ -254,6 +254,9 @@ export const completeOnboarding = mutation({
 		mossIndexName: v.optional(v.string()),
 		hubspotApiKey: v.optional(v.string()),
 		hubspotEnabled: v.boolean(),
+		locusApiKey: v.optional(v.string()),
+		locusWalletAddress: v.optional(v.string()),
+		locusEnabled: v.boolean(),
 	},
 	handler: async (ctx, args) => {
 		let user;
@@ -293,6 +296,9 @@ export const completeOnboarding = mutation({
 			mossIndexName: args.mossIndexName,
 			hubspotApiKey: args.hubspotApiKey,
 			hubspotEnabled: args.hubspotEnabled,
+			locusApiKey: args.locusApiKey,
+			locusWalletAddress: args.locusWalletAddress,
+			locusEnabled: args.locusEnabled,
 		};
 
 		let settingsId;

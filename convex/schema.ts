@@ -9,6 +9,13 @@ export default defineSchema({
 		salesScript: v.optional(v.string()),
 		companyDocs: v.optional(v.string()),
 		mossIndexName: v.optional(v.string()),
+		// HubSpot CRM integration
+		hubspotApiKey: v.optional(v.string()),
+		hubspotEnabled: v.boolean(),
+		// Locus payment integration
+		locusApiKey: v.optional(v.string()),
+		locusWalletAddress: v.optional(v.string()),
+		locusEnabled: v.boolean(),
 	}).index("by_userId", ["userId"]),
 
 	// Call recordings and transcriptions

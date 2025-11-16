@@ -8,6 +8,7 @@ import { useOnboardingStore } from '@/stores/onboarding-store'
 import { SalesScriptUpload } from '@/components/onboarding/sales-script-upload'
 import { CompanyDocsUpload } from '@/components/onboarding/company-docs-upload'
 import { HubspotConnect } from '@/components/onboarding/hubspot-connect'
+import { LocusConnect } from '@/components/onboarding/locus-connect'
 import { ExtensionConnect } from '@/components/onboarding/extension-connect'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
@@ -18,6 +19,7 @@ const ONBOARDING_STEPS = [
   { title: 'Sales Script' },
   { title: 'Company Docs' },
   { title: 'HubSpot' },
+  { title: 'Locus' },
   { title: 'Extension' },
 ]
 
@@ -71,6 +73,9 @@ export default function OnboardingPage() {
       const mossIndexName = localStorage.getItem('onboarding_mossIndexName') || undefined
       const hubspotApiKey = localStorage.getItem('onboarding_hubspotApiKey') || undefined
       const hubspotEnabled = localStorage.getItem('onboarding_hubspotEnabled') === 'true'
+      const locusApiKey = localStorage.getItem('onboarding_locusApiKey') || undefined
+      const locusWalletAddress = localStorage.getItem('onboarding_locusWalletAddress') || undefined
+      const locusEnabled = localStorage.getItem('onboarding_locusEnabled') === 'true'
 
       // Save everything to Convex
       await completeOnboardingMutation({
@@ -79,6 +84,9 @@ export default function OnboardingPage() {
         mossIndexName,
         hubspotApiKey,
         hubspotEnabled,
+        locusApiKey,
+        locusWalletAddress,
+        locusEnabled,
       })
 
       // Mark onboarding as complete in the store
@@ -90,6 +98,9 @@ export default function OnboardingPage() {
       localStorage.removeItem('onboarding_mossIndexName')
       localStorage.removeItem('onboarding_hubspotApiKey')
       localStorage.removeItem('onboarding_hubspotEnabled')
+      localStorage.removeItem('onboarding_locusApiKey')
+      localStorage.removeItem('onboarding_locusWalletAddress')
+      localStorage.removeItem('onboarding_locusEnabled')
 
       toast({
         title: 'Onboarding complete!',
@@ -149,8 +160,10 @@ export default function OnboardingPage() {
       case 2:
         return <CompanyDocsUpload onNext={handleNext} onBack={handleBack} />
       case 3:
-        return <HubspotConnect onNext={handleNext} onBack={handleBack} autoStartExtension={true} />
+        return <HubspotConnect onNext={handleNext} onBack={handleBack} />
       case 4:
+        return <LocusConnect onNext={handleNext} onBack={handleBack} />
+      case 5:
         return (
           <ExtensionConnect onComplete={handleComplete} onBack={handleBack} />
         )
@@ -168,6 +181,8 @@ export default function OnboardingPage() {
       case 3:
         return 'Connect to HubSpot'
       case 4:
+        return 'Connect Locus Payments'
+      case 5:
         return 'Connect Chrome Extension'
       default:
         return 'Getting Started'
@@ -183,6 +198,8 @@ export default function OnboardingPage() {
       case 3:
         return 'Sync your CRM data for better insights'
       case 4:
+        return 'Enable AI-powered payment capabilities'
+      case 5:
         return 'Final step to enable real-time assistance'
       default:
         return ''
